@@ -61,7 +61,7 @@
 
 4. 代码编写
 
-		
+	
 		public static SqlSessionFactory getSqlSessionFactory() throws IOException {
 	        InputStream ins = Resources.getResourceAsStream("sqlFactory.xml");
 	        SqlSessionFactory sqlSessionFactory =  SqlSessionManager.newInstance(ins);
@@ -80,15 +80,14 @@
 		来的SqlSession是需要手动提交的,不会自动提交的,需要手动进行提交
 		SqlSession sqlSession = getSqlSessionFactory().openSession(true)这种方式创建出来的SqlSession将会自动提交
 
-
-##2. 获取参数
+## 2. 获取参数
 
 ### 1. 总体说明
 
 	mybatis同样是通过动态代理来生成代理对象,但是在invocationHandler中的invoke方法中,如果是接口外的方法直接放行
-    但是如果是接口中的方法,将会对传入的参数进行封装,封装为一个map
-    在使用代理对象来执行对应的增删改操作时,传入的参数会在invoke方法处被封装,封装为一个map,再到动态
-    生成的方法内部执行,执行方法内部的sql语句
+	但是如果是接口中的方法,将会对传入的参数进行封装,封装为一个map
+	在使用代理对象来执行对应的增删改操作时,传入的参数会在invoke方法处被封装,封装为一个map,再到动态
+	生成的方法内部执行,执行方法内部的sql语句
 
 ### 2. 获取自增主键
 
@@ -125,34 +124,34 @@
 
 - 结果:上面测试代码中对象stu中的id便被赋值为自增主键的值
 
+### 3. 参数获取方式
 
-###3. 参数获取方式
+#### 单个参数的获取
 
+- 获取方法
 
-1. 单个参数的获取
-		
-	- 获取方法
-
-			mybatis不会做特殊处理
-			#{参数名}:取出参数值  
-			这个参数名可以随意编写,参数都可以成功获取
-
+```
+	mybatis不会做特殊处理
+	#{参数名}:取出参数值  
+	这个参数名可以随意编写,参数都可以成功获取
+```
 
 	- 接口方法
-
+	
 			Student findOne(int id);//单个参数
-		
-			
-	- mapper文件配置的编写,从下面可看出获取单个参数时名称可随意编写
 
+
+​			
+​	- mapper文件配置的编写,从下面可看出获取单个参数时名称可随意编写
+​	
 				<mapper namespace="Param.TestParam">
 				    <select id="findOne" parameterType="int" resultType="com.itheima.domain.Student">
 				        SELECT * FROM student where id = #{fqfqefq}
 				    </select>
 				</mapper>
-
+	
 	- 测试代码
-
+	
 			public void test05() throws IOException {
 		        SqlSession sqlSession = getSqlSessionFactory().openSession(true);
 		        TestParam testParam = sqlSession.getMapper(TestParam.class);
@@ -160,99 +159,113 @@
 		        System.out.println(stu);
 		    }
 
+#### 多个参数
 
-2. 多个参数
+- 获取方法
 
-	- 获取方法
+```
+	多个参数会被封装成一个map
+    key:param1...paramN,或者参数的索引（0,1...)也行
+    value:传入的参数值
+    #{}就是从map中获取指定key的值
+    可以通过在dao层的接口方法明确指定mybatis封装多个参数为map时key的取值,可以使用@Param("")注解
+```
 
-			多个参数会被封装成一个map
-		    key:param1...paramN,或者参数的索引（0,1...)也行
-		    value:传入的参数值
-		    #{}就是从map中获取指定key的值
-		    可以通过在dao层的接口方法明确指定mybatis封装多个参数为map时key的取值,可以使用@Param("")注解
 
+- 接口方法
+
+```
+	Student findStuByIdAndName(@Param("id") int id, @Param("name")String name);
+```
+
+- mapper配置文件的编写
+
+	- 没有进行任何设置的话,mybatis默认参数在map中的key为param1...或者0...
+
+
+```
+	    <select id="findStuByIdAndName" resultType="com.itheima.domain.Student">
+	      SELECT * FROM student WHERE id = #{param1} AND name = #{param2}
+	    </select>
+
+- 在接口方法中加入@Param注解的话,Mapper文件获取参数可以使用@Param注解处指明的参数名的值
+
+		Student findStuByIdAndName(@Param("id") int id, @Param("name")String name);
+	   
+	    <select id="findStuByIdAndName" resultType="com.itheima.domain.Student">
+	      SELECT * FROM student WHERE id = #{id} AND name = #{name}
+	    </select>
+```
+
+- 测试代码的编写
+
+```
+	public void test() throws IOException {
+        SqlSession sqlSession = getSqlSessionFactory().openSession(true);
+        TestParam testParam = sqlSession.getMapper(TestParam.class);
+        Student stu = testParam.findStuByIdAndName(1,"ddd");
+        System.out.println(stu.toString());
+    }
+```
+#### POJO对象
+
+方法中存在多个参数,如果多个参数刚好是POJO对象的属性,那么直接传入一个POJO即可
+
+- 获取参数的方法
+
+```
+	直接使用#{POJO中的属性名即可}
+	对应的接口方法:
+	Student findStuByPojo(com.itheima.domain.Param param);
+```
+
+- 接口方法
+
+```
+	Student findStuByPojo(com.itheima.domain.Param param);
+```
+
+- POJO类
+
+```
+	public class Param {
+
+	    private Integer id;
+	    private String name;
 	
-	- 接口方法
-
-			Student findStuByIdAndName(@Param("id") int id, @Param("name")String name);
-		
-	- mapper配置文件的编写
+	    public Param(Integer id, String name) {
+	        this.id = id;
+	        this.name = name;
+	    }
 	
-		- 没有进行任何设置的话,mybatis默认参数在map中的key为param1...或者0...
+	    public Integer getId() {
+	        return id;
+	    }
 	
+	    public void setId(Integer id) {
+	        this.id = id;
+	    }
 	
-			    <select id="findStuByIdAndName" resultType="com.itheima.domain.Student">
-			      SELECT * FROM student WHERE id = #{param1} AND name = #{param2}
-			    </select>
-
-		- 在接口方法中加入@Param注解的话,Mapper文件获取参数可以使用@Param注解处指明的参数名的值
-
-				Student findStuByIdAndName(@Param("id") int id, @Param("name")String name);
-			   
-			    <select id="findStuByIdAndName" resultType="com.itheima.domain.Student">
-			      SELECT * FROM student WHERE id = #{id} AND name = #{name}
-			    </select>
-
-	- 测试代码的编写
-
-			public void test() throws IOException {
-		        SqlSession sqlSession = getSqlSessionFactory().openSession(true);
-		        TestParam testParam = sqlSession.getMapper(TestParam.class);
-		        Student stu = testParam.findStuByIdAndName(1,"ddd");
-		        System.out.println(stu.toString());
-		    }
-
-3. 参数为POJO对象:方法中存在多个参数,如果多个参数刚好是POJO对象的属性,那么直接传入一个POJO即可
-
-	- 获取参数的方法
-
-			直接使用#{POJO中的属性名即可}
-			对应的接口方法:
-			Student findStuByPojo(com.itheima.domain.Param param);
-
-	- 接口方法
-
-			Student findStuByPojo(com.itheima.domain.Param param);
-
-	- POJO类
-
-			public class Param {
+	    public String getName() {
+	        return name;
+	    }
 	
-			    private Integer id;
-			    private String name;
-			
-			    public Param(Integer id, String name) {
-			        this.id = id;
-			        this.name = name;
-			    }
-			
-			    public Integer getId() {
-			        return id;
-			    }
-			
-			    public void setId(Integer id) {
-			        this.id = id;
-			    }
-			
-			    public String getName() {
-			        return name;
-			    }
-			
-			    public void setName(String name) {
-			        this.name = name;
-			    }
-			}
+	    public void setName(String name) {
+	        this.name = name;
+	    }
+	}
+```
 
-	
-	- mapper文件的编写
+
+- mapper文件的编写
 
 
 			<select id="findStuByPojo" resultType="com.itheima.domain.Student" parameterType="com.itheima.domain.Param">
 			     SELECT * FROM student WHERE id = #{id} AND name = #{name}
 		    </servlet>
-
+	
 	- 测试代码
-
+	
 			 public void test06() throws IOException {
 		        SqlSession sqlSession = getSqlSessionFactory().openSession(true);
 		        TestParam testParam = sqlSession.getMapper(TestParam.class);
@@ -261,74 +274,85 @@
 		        System.out.println(stu.toString());
 		    }
 
+#### map对象	
 
+- 参数获取的方法
 
-4.  如果不是POJO,那么直接传入一个map对象	
+```
+	在map中key为多少,在配置文件中便使用相对应的key来获取对应的属性
+```
 
-	- 参数获取的方法
+- 接口方法
 
-			在map中key为多少,在配置文件中便使用相对应的key来获取对应的属性
+```
+	Student findStuByMap(Map<String,Object> map);
+```
 
-	- 接口方法
+- mapper配置文件的编写
 
-			Student findStuByMap(Map<String,Object> map);
-	
-	- mapper配置文件的编写
+```
+	<select id="findStuByMap"  parameterType="map" resultType="com.itheima.domain.Student">
+       SELECT * FROM student WHERE id = #{id} AND name = #{name}
+    </select>
+```
 
-			<select id="findStuByMap"  parameterType="map" resultType="com.itheima.domain.Student">
-		       SELECT * FROM student WHERE id = #{id} AND name = #{name}
-		    </select>
+- 测试代码
 
-	- 测试代码
+```
+	 public void test07() throws IOException {
+        SqlSession sqlSession = getSqlSessionFactory().openSession(true);
+        TestParam testParam = sqlSession.getMapper(TestParam.class);
+        Map<String,Object> map = new HashMap<String,Object>();
+        map.put("id",1);
+        map.put("name","ddd");
+        Student stu = testParam.findStuByMap(map);
+        System.out.println(stu);
+    }
+```
+#### Collection类型
 
-			 public void test07() throws IOException {
-		        SqlSession sqlSession = getSqlSessionFactory().openSession(true);
-		        TestParam testParam = sqlSession.getMapper(TestParam.class);
-		        Map<String,Object> map = new HashMap<String,Object>();
-		        map.put("id",1);
-		        map.put("name","ddd");
-		        Student stu = testParam.findStuByMap(map);
-		        System.out.println(stu);
-		    }
+- 参数获取方法
 
-5. 参数为Collection类型
+```
+	如果参数是Collection(List,set)类型或者是数组类型,也会对参数进行特殊处理,即使只有一个参数,mybatis也会对其进行参数处理
+	Collection类型使用的key为collection,如果是List也可以使用这个key:list
+    数组key:array
+```
 
-	- 参数获取方法
+- 接口方法
 
-			如果参数是Collection(List,set)类型或者是数组类型,也会对参数进行特殊处理,即使只有一个参数,mybatis也会对其进行参数处理
-			Collection类型使用的key为collection,如果是List也可以使用这个key:list
-		    数组key:array
-	
-	- 接口方法
+```
+	List<Student> findStuByList(List<Integer> idList);
+```
 
-			List<Student> findStuByList(List<Integer> idList);
+- mapper配置文件的编写
 
-	- mapper配置文件的编写
+```
+	 <select id="findStuByList" parameterType="list" resultType="com.itheima.domain.Student">
+        SELECT * FROM student WHERE id = #{list[0]} OR id = #{list[1]}
+    </select>
+```
 
-			 <select id="findStuByList" parameterType="list" resultType="com.itheima.domain.Student">
-		        SELECT * FROM student WHERE id = #{list[0]} OR id = #{list[1]}
-		    </select>
+- 测试代码的编写
 
-	- 测试代码的编写
+```
+	public void test08() throws IOException {
+        SqlSession sqlSession = getSqlSessionFactory().openSession(true);
+        TestParam testParam = sqlSession.getMapper(TestParam.class);
+        List<Integer> list = new ArrayList<Integer>();
+        list.add(1);
+        list.add(2);
+        List<Student> studentList = testParam.findStuByList(list);
+        for(Student stu : studentList){
+            System.out.println(stu.toString());
+        }
+    }
+```
+#### 参数值获取方式
 
-			public void test08() throws IOException {
-		        SqlSession sqlSession = getSqlSessionFactory().openSession(true);
-		        TestParam testParam = sqlSession.getMapper(TestParam.class);
-		        List<Integer> list = new ArrayList<Integer>();
-		        list.add(1);
-		        list.add(2);
-		        List<Student> studentList = testParam.findStuByList(list);
-		        for(Student stu : studentList){
-		            System.out.println(stu.toString());
-		        }
-		    }
-
-
-6. 参数值获取方式
-	    
-	- #{}:以预编译的方式通过指明key获取map集合中属性的值,相当于使用PrepareStatement,防止sql注入
-	- ${}:直接从map集合中按照key的值取出map中对应的value注入sql语句中,存在安全问题
-	- 大多数情况下都使用#{}这种方式来获取数据,当原生JDBC不支持占位符的形式,那么就可以使用${}来将数据取出
+- #{}:以预编译的方式通过指明key获取map集合中属性的值,相当于使用PrepareStatement,防止sql注入
+- ${}:直接从map集合中按照key的值取出map中对应的value注入sql语句中,存在安全问题
+- 大多数情况下都使用#{}这种方式来获取数据,当原生JDBC不支持占位符的形式,那么就可以使用${}来将数据取出
 
 
 ## 4. 数据的封装
@@ -337,51 +361,59 @@
 
 1. 使用Mybatis提供的自定义的数据的封装
 
-	- 接口方法
+  - 接口方法
 
-		 	Student SimpleDemo(Integer id);
+  	 	Student SimpleDemo(Integer id);
 
-	- mapper文件的编写,直接封装为Student类型
+  - mapper文件的编写,直接封装为Student类型
 
-			 <select id="SimpleDemo" resultType="com.itheima.domain.Student">
-		        SELECT * FROM student WHERE id = #{id}
-		    </select>
+  		 <select id="SimpleDemo" resultType="com.itheima.domain.Student">
+  	        SELECT * FROM student WHERE id = #{id}
+  	    </select>
 
-	- 测试代码
+  - 测试代码
 
-			public void test() throws IOException {
-		        SqlSession sqlSession = getSqlSessionFactory().openSession();
-		        ReturnValueTest  returnValueTest = sqlSession.getMapper(ReturnValueTest.class);
-		        Student stu = returnValueTest.SimpleDemo(1);
-		        System.out.println(stu);
-		    }
-		
-	- 具体说明
+  ```java
+  	public void test() throws IOException {
+          SqlSession sqlSession = getSqlSessionFactory().openSession();
+          ReturnValueTest  returnValueTest = sqlSession.getMapper(ReturnValueTest.class);
+          Student stu = returnValueTest.SimpleDemo(1);
+          System.out.println(stu);
+      }
+  ```
 
-			mybatis对数据进行封装其实是通过反射来对数据进行封装的,如果我们通过使用默认的方式对类进行  
-			数据的封装,那么此时将会根据数据库中的字段名,通过反射来调用setter方法
-			如果数据库返回数据的字段与返回类中字段名相同,那么就能够成功封装,如果不一致的话,那就不能成功封装
+  - 具体说明
+
+  		mybatis对数据进行封装其实是通过反射来对数据进行封装的,如果我们通过使用默认的方式对类进行  
+  		数据的封装,那么此时将会根据数据库中的字段名,通过反射来调用setter方法
+  		如果数据库返回数据的字段与返回类中字段名相同,那么就能够成功封装,如果不一致的话,那就不能成功封装
 
 2. 将记录使用map形式展示出来,key为数据库的列名,value为其对应的值
-    
+   
 	- 接口方法
 	
-			 Map<String,Object> oneToMap(int id);
-
+	```java
+	 Map<String,Object> oneToMap(int id);
+	```
+	
 	- mapper文件的编写,返回的数据类型为map
 	
-			 <select id="oneToMap" resultType="map">
-		       SELECT * FROM student WHERE id = #{id}
-		  	 </select>
+	```xml
+		 <select id="oneToMap" resultType="map">
+	       SELECT * FROM student WHERE id = #{id}
+	  	 </select>
+	```
 	- 测试代码,数据将以键值对的方式直接返回
 
 
-			 public void test04() throws IOException {
-		        SqlSession sqlSession = getSqlSessionFactory().openSession();
-		        ReturnValueTest  returnValueTest = sqlSession.getMapper(ReturnValueTest.class);
-		       Map<String,Object> map = returnValueTest.oneToMap(1);
-		        System.out.println(map.toString());
-		    }
+```java
+		 public void test04() throws IOException {
+	        SqlSession sqlSession = getSqlSessionFactory().openSession();
+	        ReturnValueTest  returnValueTest = sqlSession.getMapper(ReturnValueTest.class);
+	       Map<String,Object> map = returnValueTest.oneToMap(1);
+	        System.out.println(map.toString());
+	    }
+```
 
 
 3. 当返回多条记录时,要将多条记录直接封装为一个map,要求使用数据库中主键的值作为key(自身想要使用数据库哪一列均可),封装的javaBean作为value  
@@ -389,50 +421,60 @@
 
 	- 接口方法,将多条记录封装成一个map,在接口方法处使用@MapKey注解指定map中的key
 
-			  @MapKey("id")//使用数据库中数据的值
-	    	  Map<Object,Object> listToMap(List<Integer> list);
+	```java
+		  @MapKey("id")//使用数据库中数据的值
+	  Map<Object,Object> listToMap(List<Integer> list);
+	```
 
 	- mapper文件的编写
-
-			<select id="listToMap" resultType="com.itheima.domain.Student" parameterType="list">
-		        SELECT * FROM student WHERE id = #{list[0]} OR id = #{list[1]}
-		    </select>
-
+	
+	```xml
+	<select id="listToMap" resultType="com.itheima.domain.Student" parameterType="list">
+	        SELECT * FROM student WHERE id = #{list[0]} OR id = #{list[1]}
+    </select>
+	```
+	
 	- 测试代码
-
-			public void test05() throws IOException {
-		        SqlSession sqlSession = getSqlSessionFactory().openSession();
-		        ReturnValueTest  returnValueTest = sqlSession.getMapper(ReturnValueTest.class);
-		        List<Integer> list = new ArrayList<Integer>();
-		        list.add(2);
-		        list.add(1);
-		        Map<Object,Object> returnMap = returnValueTest.listToMap(list);
-		        System.out.println(returnMap);
-		    }
+	
+	```java
+		public void test05() throws IOException {
+	        SqlSession sqlSession = getSqlSessionFactory().openSession();
+	        ReturnValueTest  returnValueTest = sqlSession.getMapper(ReturnValueTest.class);
+	        List<Integer> list = new ArrayList<Integer>();
+	        list.add(2);
+	        list.add(1);
+	        Map<Object,Object> returnMap = returnValueTest.listToMap(list);
+	        System.out.println(returnMap);
+	    }
+	```
 
 ### ResultMap的使用
 
-####1. 概述:可以使用resultMap来自定义封装的规则
+#### 1. 概述
 
-#### 基本使用
+​     可以使用resultMap来自定义封装的规则
+
+#### 2. 基本使用
 
 1. 使用方法
 
-		
-	- 外部标签:
-		- id属性唯一标识这个自定义封装规则
-		- type属性声明查询结果将被封装为什么类型
-		
-	- 内部标签:
-		- id子标签:定义主键列的封装规则
-		- result子标签:用于声明普通列的封装规则
-			- column:声明数据库中对应的列
-			- property:声明封装到哪一项属性中
-	- 附加说明
-	
-			<id>定义主键在底层会有优化
-			在resultMap定义封装规则时,如果不指定的话,那么查询结果将会自动进行封装
-			但是如果我们编写resultMap,那么应该将规则编写完整
+
+  - 外部标签:
+  	- id属性唯一标识这个自定义封装规则
+  	- type属性声明查询结果将被封装为什么类型
+  
+  - 内部标签:
+  	- id子标签:定义主键列的封装规则
+  	- result子标签:用于声明普通列的封装规则
+    		- column:声明数据库中对应的列
+    		- property:声明封装到哪一项属性中
+  - 附加说明
+
+  ```xml
+  	<id>定义主键在底层会有优化
+  	在resultMap定义封装规则时,如果不指定的话,那么查询结果将会自动进行封装
+  	但是如果我们编写resultMap,那么应该将规则编写完整
+  ```
 
 2. 接口方法
 
@@ -440,92 +482,112 @@
 
 3. mapper文件编写示例
 
-		  <select id="findById" resultMap="studentResultMap">
-	        SELECT * FROM student WHERE id = #{id}
-	      </select>
-	      <resultMap id="studentResultMap" type="com.itheima.domain.Student">
-	          <id  column="id" property="id"></id>
-	          <result column="name" property="lastName"></result>
-	          <result column="gender" property="gender"></result>
-	          <result column="year" property="year"></result>
-	      </resultMap>
+      ```xml
+      <select id="findById" resultMap="studentResultMap">
+              SELECT * FROM student WHERE id = #{id}
+            </select>
+      ```
+
+      
+
+      ```xml
+        <resultMap id="studentResultMap" type="com.itheima.domain.Student">
+            <id  column="id" property="id"></id>
+            <result column="name" property="lastName"></result>
+            <result column="gender" property="gender"></result>
+            <result column="year" property="year"></result>
+        </resultMap>
+      ```
 
 4. 测试方法
 
 		public void test01() throws Exception {
 
-	        SqlSession sqlSession = getSqlSessionFactory().openSession();
-	        UseResultMap useResultMap =  sqlSession.getMapper(UseResultMap.class);
-	        Student stu = useResultMap.findById(1);
-	        System.out.println(stu.toString());
+	```java
+	    SqlSession sqlSession = getSqlSessionFactory().openSession();
+	    UseResultMap useResultMap =  sqlSession.getMapper(UseResultMap.class);
+	    Student stu = useResultMap.findById(1);
+	    System.out.println(stu.toString());
 	
-	    }
+	}
+	```
 
 
-#### 复合属性的封装
+#### 3. 复合属性的封装
 1. 要求
 
  - 实际要求
 	
 	       - 查询员工时,同时查询出员工所在的部门信息,员工中存在一个部门属性,查询出来的某一列是部门属性的子属性可以直接使用级联属性来进行数据的封装 
-	      
-			
+	     
+	
  - 待封装的类
 
-			public class StudentPlus {
+			```java
+	public class StudentPlus {
 			    private Integer id;
 			    private String lastName;
 			    private String gender;
 			    private int year;
 			    private Department dept;
 			}
+	```
+	
+	
 
 2. 实现方法
 
-	可以使用关联标签对属性进行封装,这个association标签是用于封装关联对象的子标签
+  可以使用关联标签对属性进行封装,这个association标签是用于封装关联对象的子标签
 
-		 
-		<association property="" javaType=""></association>
-		- property:待封装的属性的名字
-		- javaType:对象的具体类型
+
+  ```xml
+  <association property="" javaType=""></association>
+  - property:待封装的属性的名字
+  - javaType:对象的具体类型
+  ```
 
 3. mapper文件编写范例
 
-		<select id="findByIdPlus" resultMap="studentPlusResultMap">
+		```xml
+	<select id="findByIdPlus" resultMap="studentPlusResultMap">
 	        select stu.id stu_id,stu.name stu_name,stu.gender stu_gender,stu.year stu_year,
 	        dept.id dept_id,dept.name dept_name FROM student stu inner join dept on  stu.dept_id = dept.id where stu.id = #{id};
 	    </select>
+	```
 	
-	    <resultMap id="studentPlusResultMap" type="com.itheima.domain.StudentPlus">
-	        <id  column="stu.id" property="id"></id>
-	        <result column="stu.name" property="lastName"></result>
-	        <result column="stu.gender" property="gender"></result>
-	        <result column="stu.year" property="year"></result>
-	        <association property="dept" javaType="com.itheima.domain.Department">
-	            <id column="dept_id" property="id"></id>
-	            <result column="dept_name" property="name"></result>
-	        </association>
-	    </resultMap>
-
+	```xml
+	<resultMap id="studentPlusResultMap" type="com.itheima.domain.StudentPlus">
+	    <id  column="stu.id" property="id"></id>
+	    <result column="stu.name" property="lastName"></result>
+	    <result column="stu.gender" property="gender"></result>
+	    <result column="stu.year" property="year"></result>
+	    <association property="dept" javaType="com.itheima.domain.Department">
+	        <id column="dept_id" property="id"></id>
+        <result column="dept_name" property="name"></result>
+	    </association>
+	</resultMap>
+	```
 	
 4. 分步查询
 
-	- 分析
+  - 分析
 
-		    可以先在员工表中找出dept的id,再使用该id找出dept的值来找出公寓的值
+  	    可以先在员工表中找出dept的id,再使用该id找出dept的值来找出公寓的值
 
-	- mybatis提供的标签:
+  - mybatis提供的标签:
 
-			<association property="" select="" column=""></association>
+  ```xml
+  	<association property="" select="" column=""></association>
+  
+  	- property:select查询封装出来的结果存储到property属性中
+  	- select:调用某一个select
+  	- column:指明要传入的值,格式为{key1=数据库某列的值,key2=数据库某列的值}
+  ```
 
-			- property:select查询封装出来的结果存储到property属性中
-			- select:调用某一个select
-			- column:指明要传入的值,格式为{key1=数据库某列的值,key2=数据库某列的值}
- 
  	     	使用这个标签可以成功将查询的结果封装后存储到某个属性中去
 
 	- mapper文件编写
-
+	
 			 <select id="findStuPlusByIdStep" resultMap="studentPlusStep">
 		        SELECT * FROM student where id = #{id}
 		    </select>
@@ -541,11 +603,11 @@
 		    <select id="deptById" resultType="com.itheima.domain.Department">
 		        SELECT * FROM dept WHERE id = #{id}
 		    </select>
-
+	
 	- 测试代码
-
+	
 			public void test03() throws Exception {
-
+	
 		        SqlSession sqlSession = getSqlSessionFactory().openSession();
 		        UseResultMap useResultMap =  sqlSession.getMapper(UseResultMap.class);
 		        StudentPlus stu = useResultMap.findStuPlusByIdStep(100);
@@ -554,7 +616,7 @@
 		    }
 
 
-#### 列表属性封装
+#### 4. 列表属性封装
 
 1. 要求
 	
@@ -563,81 +625,90 @@
 2. 待封装的类
 
 
-		public class Department {
-	
-		    private int id;
-		    private String name;
-		    private List<Student> list;
-		}
+```java
+	public class Department {
+
+	    private int id;
+	    private String name;
+	    private List<Student> list;
+	}
+```
 
 3. mybatis提供的标签:collection
 
 
-		可以使用collection标签来对集合属性进行封装
-	    <collection property="" ofType=""></collection>
-		- property:待封装类的属性
-		- ofType:集合中的元素类型
+```xml
+	可以使用collection标签来对集合属性进行封装
+    <collection property="" ofType=""></collection>
+	- property:待封装类的属性
+	- ofType:集合中的元素类型
+```
 
 4. mapper文件的编写
 
-		 <select id="findDeptPlus" resultMap="DeptResultMap">
-	             select stu.id stu_id,stu.name stu_name,stu.gender stu_gender,stu.year stu_year,
-	        dept.id dept_id,dept.name dept_name FROM student stu inner join dept on  stu.dept_id = dept.id where dept_id = #{dept_id}
-	    </select>
-	
-		上面类属性的封装
-	    <resultMap id="DeptResultMap" type="com.itheima.domain.Department">
-	        <id column="dept_id" property="id"></id>
-	        <result column="dept_name" property="name"></result>
-	        <collection property="list" ofType="com.itheima.domain.Student">
-	            <id  column="stu_id" property="id"></id>
-	            <result column="stu_name" property="lastName"></result>
-	            <result column="stu_gender" property="gender"></result>
-	            <result column="stu_year" property="year"></result>
-	        </collection>
-	    </resultMap>
+     <select id="findDeptPlus" resultMap="DeptResultMap">
+                  select stu.id stu_id,stu.name stu_name,stu.gender stu_gender,stu.year stu_year,
+             dept.id dept_id,dept.name dept_name FROM student stu inner join dept on  stu.dept_id = dept.id where dept_id = #{dept_id}
+         </select>
+
+     ```xml
+     上面类属性的封装
+     <resultMap id="DeptResultMap" type="com.itheima.domain.Department">
+         <id column="dept_id" property="id"></id>
+         <result column="dept_name" property="name"></result>
+         <collection property="list" ofType="com.itheima.domain.Student">
+             <id  column="stu_id" property="id"></id>
+             <result column="stu_name" property="lastName"></result>
+             <result column="stu_gender" property="gender"></result>
+             <result column="stu_year" property="year"></result>
+         </collection>
+     </resultMap>
+     ```
 
 5. 测试代码
 
 		 public void test04() throws Exception {
 	
-	        SqlSession sqlSession = getSqlSessionFactory().openSession();
-	        UseResultMap useResultMap =  sqlSession.getMapper(UseResultMap.class);
-	        Department stu = useResultMap.findDeptPlus(1);
-	        System.out.println(stu.toString());
-	        //  System.out.println(stu.toString());
+	```java
+	    SqlSession sqlSession = getSqlSessionFactory().openSession();
+	    UseResultMap useResultMap =  sqlSession.getMapper(UseResultMap.class);
+	    Department stu = useResultMap.findDeptPlus(1);
+	    System.out.println(stu.toString());
+	    //  System.out.println(stu.toString());
 	
-	    }
+	}
+	```
 
-
-6.分步查询实现功能
+#### 5.分步查询实现功能
 
  - 标签说明
 	
 	    <collection property="" select="" column=""></collection>
 
-  	 	- 在这个collection标签内部使用select属性使用另一个查询
-   	    - column是要求传入的值的数据库对应的列
+    	 	- 在这个collection标签内部使用select属性使用另一个查询
+    	 	    - column是要求传入的值的数据库对应的列
 		- property: 要封装到哪个属性	
 
 - mapper文件的编写
 
-		<select id="findDeptPlusStep" resultMap="DeptResultMapStep">
-	        SELECT * FROM dept WHERE id = #{id}
-	    </select>
-	    <select id="findStudentByDeptId" resultType="com.itheima.domain.Student">
-	        SELECT * FROM student WHERE dept_id = #{id}
-	    </select>
-	    <resultMap id="DeptResultMapStep" type="com.itheima.domain.Department">
-	        <id column="id" property="id"></id>
-	        <result column="name" property="name"></result>
-	        <collection property="list" select="findStudentByDeptId" column="id" >
-	        </collection>
-	    </resultMap>
+```xml
+	<select id="findDeptPlusStep" resultMap="DeptResultMapStep">
+        SELECT * FROM dept WHERE id = #{id}
+    </select>
+    <select id="findStudentByDeptId" resultType="com.itheima.domain.Student">
+        SELECT * FROM student WHERE dept_id = #{id}
+    </select>
+    <resultMap id="DeptResultMapStep" type="com.itheima.domain.Department">
+        <id column="id" property="id"></id>
+        <result column="name" property="name"></result>
+        <collection property="list" select="findStudentByDeptId" column="id" >
+        </collection>
+    </resultMap>
+```
 
 
 
-## 动态sql的使用
+## 5. 动态sql的使用
 
 ### if标签
 
@@ -647,34 +718,39 @@
 
 2. 使用标签
 
-		 if标签,在test属性内部编写OGNL表达式,这个表达式成立才会将该字符串进行拼凑,否则不拼凑
-		 编写表达式时遇到特殊字符,则需要使用转译字符
-		  <if test="">
-		
-		  </if>
+     if标签,在test属性内部编写OGNL表达式,这个表达式成立才会将该字符串进行拼凑,否则不拼凑
+     	 编写表达式时遇到特殊字符,则需要使用转译字符
+
+     ```xml
+       <if test=""> </if>
+     ```
 
 3. mapper文件编写
 
-		<select id="testWhere" resultMap="studentResultMap">
+	
+	```XML
+	 <select id="testWhere" resultMap="studentResultMap">
 	          SELECT * FROM student WHERE
 	           <if test="id != null">id = #{id}</if>
 	           <if test="lastName != null">AND name = #{lastName}</if>
 	           <if test="gender != null">AND gender = #{gender}</if>
 	           <if test="year != null">AND year = #{year}</if>
-	         
-	     </select>
+	 </select>
+	```
 
 4 测试代码
 	
 
-		public void testIf() throws IOException {
-	        SqlSession sqlSession = getSqlSessionFactory().openSession();
-	        DynamicUse studentMapper = sqlSession.getMapper(DynamicUse.class);
-	        Student student = new Student(null,"ddd",null,22);
-	        Student stu = studentMapper.testif(student);
-	        System.out.println(stu);
-	    }
-		
+```JAVA
+	public void testIf() throws IOException {
+        SqlSession sqlSession = getSqlSessionFactory().openSession();
+        DynamicUse studentMapper = sqlSession.getMapper(DynamicUse.class);
+        Student student = new Student(null,"ddd",null,22);
+        Student stu = studentMapper.testif(student);
+        System.out.println(stu);
+    }
+```
+
 
 ### where标签
 1. 解决问题
@@ -688,7 +764,8 @@
 
 3. mapper文件编写
 
-		<select id="testWhere" resultMap="studentResultMap">
+		```xml
+	<select id="testWhere" resultMap="studentResultMap">
 	          SELECT * FROM student
 	          <where>
 	           <if test="id != null">id = #{id}</if>
@@ -697,17 +774,24 @@
 	           <if test="year != null">AND year = #{year}</if>
 	          </where>
 	      </select>
+	```
+	
+	
 
 
 3. 测试代码
 
-		public void testWhere() throws IOException {
+		```JAVA
+	public void testWhere() throws IOException {
 	        SqlSession sqlSession = getSqlSessionFactory().openSession();
 	        DynamicUse studentMapper = sqlSession.getMapper(DynamicUse.class);
 	        Student student = new Student(null,"ddd",null,22);
 	        List<Student> stu = studentMapper.testWhere(student);
 	        System.out.println(stu);
 	    }
+	```
+	
+	
 
 ### trim标签
 
@@ -715,7 +799,7 @@
 
  		无法去掉最后一个多余的and或者or
 
-          
+​          
 
 2. 解决方法
 
@@ -724,36 +808,41 @@
 
 3. trim标签说明
 
-		<trim prefix="" prefixOverrides="" suffix="" suffixOverrides=""></trim>
-	
-		 prefix:在标签内部生成的语句整体加上一个前缀
-		 prefixOverrides:将生成语句的多余的字符去掉
-		 suffix:在生成的语句整体加上一个后缀
-		 suffixOverrides:将生成的语句后面多余的字符串去掉
-		
-		 这样就能够解决 后面/前面 多余的 and/or 的内容
+    ```XML
+     <trim prefix="" prefixOverrides="" suffix="" suffixOverrides=""></trim>
+     prefix:在标签内部生成的语句整体加上一个前缀
+     prefixOverrides:将生成语句的多余的字符去掉
+     suffix:在生成的语句整体加上一个后缀
+     suffixOverrides:将生成的语句后面多余的字符串去掉
+    
+     这样就能够解决 后面/前面 多余的 and/or 的内容
+    ```
 
 4. mapper文件编写
 
-		<select id="testTrim" resultMap="studentResultMap">
-	        SELECT * FROM student
-	        <trim prefix="WHERE" suffixOverrides="AND">
-	            <if test="id != null">id = #{id} AND</if>
-	            <if test="lastName != null"> name = #{lastName} AND </if>
-	            <if test="gender != null">gender = #{gender} AND</if>
-	            <if test="year != null"> year = #{year}</if>
-	        </trim>
-	    </select>
+    ```xml
+    <select id="testTrim" resultMap="studentResultMap">
+            SELECT * FROM student
+            <trim prefix="WHERE" suffixOverrides="AND">
+                <if test="id != null">id = #{id} AND</if>
+                <if test="lastName != null"> name = #{lastName} AND </if>
+                <if test="gender != null">gender = #{gender} AND</if>
+                <if test="year != null"> year = #{year}</if>
+            </trim>
+        </select>
+    ```
 
-5. 测试代码
+    测试代码
 
-		public void testTrim() throws IOException {
-	        SqlSession sqlSession = getSqlSessionFactory().openSession();
-	        DynamicUse studentMapper = sqlSession.getMapper(DynamicUse.class);
-	        Student student = new Student(null,"ddd",null,null);
-	        List<Student> stu = studentMapper.testTrim(student);
-	        System.out.println(stu);
-	    }
+    ```JAVA
+    public void testTrim() throws IOException {
+            SqlSession sqlSession = getSqlSessionFactory().openSession();
+            DynamicUse studentMapper = sqlSession.getMapper(DynamicUse.class);
+            Student student = new Student(null,"ddd",null,null);
+            List<Student> stu = studentMapper.testTrim(student);
+            System.out.println(stu);
+        }
+    ```
 
 
 ### choose标签的使用
@@ -763,41 +852,48 @@
    
 2. choose标签说明:choose标签的使用相当于switch-case的使用
 		 
-		  <choose>
-		         <when test="">
-		
-		         </when>
-		          <otherwise>
-		
-		          </otherwise>
-		   </choose>
-		   只使用其中一个查询条件,当满足test内部编写的OGNL表达式,才会使用这个条件
-		   就是查询时只使用其中一个条件
-		   而<otherwise>标签就相当于switch中的default,如果上面所有的条件都不满足,那就使用otherwise标签内部所使用的条件
-
+		  
+	
+	```XML
+	 <choose>
+		    <when test="">   
+	        </when>
+	        <otherwise>
+	
+	        </otherwise>
+	   </choose>
+	   只使用其中一个查询条件,当满足test内部编写的OGNL表达式,才会使用这个条件
+   就是查询时只使用其中一个条件
+	   而<otherwise>标签就相当于switch中的default,如果上面所有的条件都不满足,那就使用otherwise标签内部所使用的条件
+	```
+	
 3. mapper文件编写
 
 
-		 <select id="testChoose" resultMap="studentResultMap">
-	        SELECT * FROM student where
-	        <choose>
-	            <when test="id != null">id = #{id}</when>
-	            <when test="lastName != null"> name = #{lastName} </when>
-	            <when test="gender != null">gender = #{gender} </when>
-	            <when test="year != null"> year = #{year}</when>
-	            <otherwise>1 = 1</otherwise>
-	      </choose>
-	    </select>
+```XML
+	 <select id="testChoose" resultMap="studentResultMap">
+        SELECT * FROM student where
+        <choose>
+            <when test="id != null">id = #{id}</when>
+            <when test="lastName != null"> name = #{lastName} </when>
+            <when test="gender != null">gender = #{gender} </when>
+            <when test="year != null"> year = #{year}</when>
+            <otherwise>1 = 1</otherwise>
+      </choose>
+    </select>
+```
 
 4. 测试代码
 
-		public void testChoose() throws IOException {
+		```JAVA
+	public void testChoose() throws IOException {
 	        SqlSession sqlSession = getSqlSessionFactory().openSession();
 	        DynamicUse studentMapper = sqlSession.getMapper(DynamicUse.class);
 	        Student student = new Student(null,"ddd",null,null);
 	        List<Student> stu = studentMapper.testChoose(student);
 	        System.out.println(stu);
 	    }
+	```
 
 ### foreach标签
 
@@ -807,34 +903,57 @@
 
 2. foreach标签说明
 
-		<foreach collection="" item="item_id" separator="" open="" close="">
-	            #{item_id}
-	    </foreach>
-	    collection:指定要遍历的集合
-	    list类型的参数会特殊处理封装在map,map的key就叫做list
-	    item:将遍历出的元素赋给指定的变量
-	    separator:指明遍历出来元素之间的分割符
-	    open:结果集拼接上一个开始符号
-	    close:遍历出来的结果集拼接上一个结束符号
+    ```XML
+    <foreach collection="" item="item_id" separator="" open="" close="">
+                #{item_id}
+        </foreach>
+        collection:指定要遍历的集合
+        list类型的参数会特殊处理封装在map,map的key就叫做list
+        item:将遍历出的元素赋给指定的变量
+        separator:指明遍历出来元素之间的分割符
+        open:结果集拼接上一个开始符号
+        close:遍历出来的结果集拼接上一个结束符号
+    ```
 
 3. mapper文件编写
 
-		 <select id="testForeach" resultMap="studentResultMap" parameterType="list">
-	        SELECT * FROM student where id in
-	        <foreach collection="list" open="(" close=")" separator="," item="data" >
-	            #{data}
-	        </foreach>
-	    </select>
+     ```xml
+     <select id="testForeach" resultMap="studentResultMap" parameterType="list">
+             SELECT * FROM student where id in
+             <foreach collection="list" open="(" close=")" separator="," item="data" >
+                 #{data}
+             </foreach>
+         </select>
+     ```
+
+     
 
 4. 测试代码
 
-		public void testForeach() throws IOException {
-	        SqlSession sqlSession = getSqlSessionFactory().openSession();
-	        DynamicUse studentMapper = sqlSession.getMapper(DynamicUse.class);
-	       // Student student = new Student(null,"ddd",null,null);
-	        List<Integer> list = new ArrayList<Integer>();
-	        list.add(1);
-	        list.add(2);
-	        List<Student> stu = studentMapper.testForeach(list);
-	        System.out.println(stu);
-	    }
+    ```JAVA
+    public void testForeach() throws IOException {
+            SqlSession sqlSession = getSqlSessionFactory().openSession();
+            DynamicUse studentMapper = sqlSession.getMapper(DynamicUse.class);
+           // Student student = new Student(null,"ddd",null,null);
+            List<Integer> list = new ArrayList<Integer>();
+            list.add(1);
+            list.add(2);
+            List<Student> stu = studentMapper.testForeach(list);
+            System.out.println(stu);
+        }
+    ```
+
+    
+
+    ## 6. Mapper文件
+
+    <mapper>中有resource,class,url属性
+
+     resource:直接导入对应的xml文件
+     class:导入对应的接口文件,用于注解的开发方式
+
+     <package>用于声明接口的包,此时要求在resource文件夹下创建与接口包一样层次的名称,并且对应的xml文件要与接口名相同
+
+## PageHelper的使用
+
+https://github.com/pagehelper/Mybatis-PageHelper/blob/master/wikis/zh/HowToUse.md

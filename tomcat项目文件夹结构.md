@@ -1,0 +1,12 @@
+tomcat部署项目生成的文件夹结构
+
+对于maven生成的web-app项目,将会被部署到tomcat服务器的webapps文件夹下
+
+对web项目进行部署,在webapp文件夹下的WEB-INF文件夹会自动生成classes文件夹和lib文件夹,classes文件夹用于存储根目录下java文件夹编译生成的class文件和resources中的配置文件
+
+而lib文件夹用于存储导入的jar包
+
+项目中在WEB-INF文件夹下创建的文件夹会自动生成对应的文件夹存储在WEB-INF文件夹下
+
+而在webapp文件夹下创建的文件将与WEB-INF文件夹同级,可以直接被浏览器访问
+
