@@ -171,7 +171,7 @@
 				    public void setBirthday(Date birthday) {
 				        this.birthday = birthday;
 				    }
-		
+			
 				}
 		
 - 配置文件中的配置
@@ -186,9 +186,9 @@
 - 注意
 	
 		    1.底层使用反射,所以直接通过配置文件中属性的名字找到对应的setter方法,所以name属性的值与  
-		      对象的属性名并没有必然的关系,而与对象中的setter方法相关
-		    2.举个例子来说,设置year属性的setter方法名为setYear,那么此时标签property属性name的值为   
-		      year,但是假如setter方法名为setMyYear,那么此时property属性的name的值就变为myYear
+	          对象的属性名并没有必然的关系,而与对象中的setter方法相关
+	        2.举个例子来说,设置year属性的setter方法名为setYear,那么此时标签property属性name的值为   
+	          year,但是假如setter方法名为setMyYear,那么此时property属性的name的值就变为myYear
 
 
 ## 2. Spring常用注解的使用
@@ -274,7 +274,7 @@
 		 - Resource注解注入指定id的bean对象
 
          - 因为@Resource(name = "serviceDao")可以直接根据id来指定bean对象,所以如果指定的类型与实际要注入的类型不一致的话,就会直接报错
-          
+         
          - 而对于  
             @Autowired  
             @Qualifier(value="serviceDao")  
@@ -325,7 +325,7 @@
 	加上@PreDestroy注解,销毁这个对象时,便会执行销毁方法
 
 		public class ServiceImpl implements IService {
-	
+		
 		   @PostConstruct
 		   public void init() {
 		       System.out.println("对象开始创建");
@@ -334,7 +334,7 @@
 		   public void destroy() {
 		        System.out.println("对象的销毁开始执行");
 		   }
-	
+		
 		}
 
 ### 6. Spring和JUnit的整合
@@ -623,13 +623,13 @@
 
 
 ​        
-        final Producer producer = new Producer();
-        Producer producer1 = (Producer) Enhancer.create(Producer.class, new MethodInterceptor() {
-            public Object intercept(Object o, Method method, Object[] objects, MethodProxy methodProxy) throws Throwable {
-                System.out.println("所有的方法都被增强");
-                return method.invoke(producer,objects);
-            }
-        });
+​        final Producer producer = new Producer();
+​        Producer producer1 = (Producer) Enhancer.create(Producer.class, new MethodInterceptor() {
+​            public Object intercept(Object o, Method method, Object[] objects, MethodProxy methodProxy) throws Throwable {
+​                System.out.println("所有的方法都被增强");
+​                return method.invoke(producer,objects);
+​            }
+​        });
 
 #### 3. Spring中XML文件配置的AOP
 
@@ -843,13 +843,18 @@
              <bean id = "transManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
                 <property name="dataSource" ref="datasource"></property>
             </bean>
+          
  - 配置一个事务的通知
    
+         ```xml
             <tx:advice id="txManager" transaction-manager="transManager" >
                 <tx:attributes>
                     <tx:method name="findAll"/>
                 </tx:attributes>
             </tx:advice>
+         ```
+         
+         
          
             事务属性的设置
             tx:method:对某个方法的属性进行设置,并且必须进行设置,如果没有设置的话,那么肯定会发生错误
@@ -886,14 +891,15 @@
             </bean>
     2. 配置spring开启注解驱动的方式,此时需要设置好一个事务管理器
                 
-        
-    <tx:annotation-driven transaction-manager="transManager"/>
        
+    
+    <tx:annotation-driven transaction-manager="transManager"/>
+    
     3. 在需要配置事务的位置加上@Transactional注解
     
             @Transactional //为该类中所有的方法都加上事务,使用事务默认的配置
             //如果需要为不同的方法中事务设置不同的类型,此时可以在不同方法上加上@Transactional中设置不同的属性即可
-            public class AccountServiceImpl implements IAccountService {
+	        public class AccountServiceImpl implements IAccountService {
 	            此时如果在不同的方法配置上不同配置的事务,此时在不同的方法上都需要写上注解
-	    
+	        
 		    }
